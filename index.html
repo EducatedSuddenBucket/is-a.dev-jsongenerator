@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>is-a.dev JSON Generator</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            background-color: #1f2937;
+            color: white;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #111827;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .sidebar input,
+        .sidebar select,
+        .sidebar button {
+            width: calc(100% - 40px);
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+        }
+
+        .sidebar button {
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar button:hover {
+            background-color: #45a049;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        pre {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.2;
+            white-space: pre;
+            background-color: #2d3748;
+            padding: 20px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+
+        .record-section {
+            display: flex;
+            align-items: center;
+        }
+
+        .record-section input {
+            margin-right: 10px;
+            flex-grow: 1;
+        }
+
+        .record-section button {
+            background-color: #d32f2f;
+        }
+
+        .existing-records {
+            margin-top: 20px;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #1f2937;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        .record-item button {
+            background-color: #d32f2f;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .record-item button:hover {
+            background-color: #c62828;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #2196F3;
+        }
+
+        .copy-button {
+            background-color: #4caf50;
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>is-a.dev JSON Generator</h2>
+            <input type="text" id="username" placeholder="GitHub Username" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <div class="record-section">
+                <select id="recordType">
+                    <option value="CNAME">CNAME</option>
+                    <option value="A">A</option>
+                    <option value="AAAA">AAAA</option>
+                    <option value="URL">URL</option>
+                    <option value="MX">MX</option>
+                    <option value="TXT">TXT</option>
+                </select>
+                <input type="text" id="recordValue" placeholder="Record Value" required>
+                <button onclick="addRecord()">+</button>
+            </div>
+            <div class="existing-records" id="existingRecords"></div>
+        </div>
+        <div class="main-content">
+            <pre id="jsonOutput">{
+    "owner": {
+        "username": "",
+        "email": ""
+    },
+    "record": {}
+}</pre>
+            <button class="copy-button" onclick="copyJSON()">Copy JSON</button>
+            <div class="footer">Made By EducatedSuddenBucket</div>
+        </div>
+    </div>
+
+    <script>
+        let records = {};
+
+        function addRecord() {
+            const recordType = document.getElementById('recordType').value;
+            const recordValue = document.getElementById('recordValue').value;
+
+            if (!records[recordType]) {
+                records[recordType] = [];
+            }
+
+            if (recordType === "A" || recordType === "AAAA" || recordType === "MX") {
+                records[recordType].push(recordValue);
+            } else if (recordType === "TXT") {
+                if (Array.isArray(records[recordType])) {
+                    records[recordType].push(recordValue);
+                } else {
+                    records[recordType] = [recordValue];
+                }
+            } else {
+                records[recordType] = recordValue;
+            }
+
+            document.getElementById('recordValue').value = '';
+            updateExistingRecords();
+            updateJSONOutput();
+        }
+
+        function removeRecord(recordType, index) {
+            if (Array.isArray(records[recordType])) {
+                records[recordType].splice(index, 1);
+                if (records[recordType].length === 0) {
+                    delete records[recordType];
+                }
+            } else {
+                delete records[recordType];
+            }
+
+            updateExistingRecords();
+            updateJSONOutput();
+        }
+
+        function updateExistingRecords() {
+            const existingRecordsDiv = document.getElementById('existingRecords');
+            existingRecordsDiv.innerHTML = '';
+
+            for (const [recordType, recordValues] of Object.entries(records)) {
+                if (Array.isArray(recordValues)) {
+                    recordValues.forEach((value, index) => {
+                        const recordItemDiv = document.createElement('div');
+                        recordItemDiv.className = 'record-item';
+                        recordItemDiv.innerHTML = `<span>${recordType}: ${value}</span>
+                        <button onclick="removeRecord('${recordType}', ${index})">Remove</button>`;
+                        existingRecordsDiv.appendChild(recordItemDiv);
+                    });
+                } else {
+                    const recordItemDiv = document.createElement('div');
+                    recordItemDiv.className = 'record-item';
+                    recordItemDiv.innerHTML = `<span>${recordType}: ${recordValues}</span>
+                    <button onclick="removeRecord('${recordType}', 0)">Remove</button>`;
+                    existingRecordsDiv.appendChild(recordItemDiv);
+                }
+            }
+        }
+
+        function generateJSON() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+
+            const jsonOutput = {
+                owner: {
+                    username: username,
+                    email: email
+                },
+                record: records
+            };
+
+            document.getElementById('jsonOutput').textContent = JSON.stringify(jsonOutput, null, 4);
+        }
+
+        function updateJSONOutput() {
+            generateJSON();
+        }
+
+        function copyJSON() {
+            const jsonOutput = document.getElementById('jsonOutput').textContent;
+            navigator.clipboard.writeText(jsonOutput).then(() => {
+                alert('JSON copied to clipboard!');
+            }, () => {
+                alert('Failed to copy JSON.');
+            });
+        }
+    </script>
+</body>
+
+</html>
